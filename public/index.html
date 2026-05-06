@@ -118,7 +118,7 @@
 
       li {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: auto 1fr auto;
         align-items: center;
         gap: 12px;
         border: 1px solid #e5eaf1;
@@ -127,8 +127,20 @@
         background: #f8fafc;
       }
 
+      .toggle {
+        width: 18px;
+        height: 18px;
+        margin: 0;
+        cursor: pointer;
+      }
+
       .todo-text {
         overflow-wrap: anywhere;
+      }
+
+      .done .todo-text {
+        color: #9ca3af;
+        text-decoration: line-through;
       }
 
       .empty,
@@ -154,6 +166,10 @@
         form,
         li {
           grid-template-columns: 1fr;
+        }
+
+        .toggle {
+          justify-self: start;
         }
       }
     </style>
@@ -222,6 +238,21 @@
 
         visibleTodos.forEach((todo) => {
           const item = document.createElement('li');
+          item.className = todo.done ? 'done' : '';
+
+          const checkbox = document.createElement('input');
+          checkbox.className = 'toggle';
+          checkbox.type = 'checkbox';
+          checkbox.checked = todo.done;
+          checkbox.setAttribute('aria-label', `Mark "${todo.text}" ${todo.done ? 'not done' : 'done'}`);
+          checkbox.addEventListener('change', async () => {
+            try {
+              await toggleTodo(todo.id, todo.done);
+            } catch (err) {
+              setError(err.message);
+              await loadTodos().catch(() => {});
+            }
+          });
 
           const text = document.createElement('span');
           text.className = 'todo-text';
@@ -233,7 +264,7 @@
           button.textContent = 'Delete';
           button.addEventListener('click', () => deleteTodo(todo.id));
 
-          item.append(text, button);
+          item.append(checkbox, text, button);
           list.appendChild(item);
         });
       }
@@ -279,6 +310,23 @@
           renderTodos();
         });
       });
+
+      async function toggleTodo(id, done) {
+        setError('');
+
+        const response = await fetch(`/todos/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ done: !done })
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || 'Could not update todo');
+        }
+
+        await loadTodos();
+      }
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
