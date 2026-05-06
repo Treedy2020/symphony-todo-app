@@ -1,11 +1,49 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 
 const app = express();
 const port = 3000;
+const dataDir = path.join(__dirname, 'data');
+const todosFile = path.join(dataDir, 'todos.json');
 
 let todos = [];
 let nextId = 1;
+
+function loadTodos() {
+  try {
+    if (!fs.existsSync(todosFile)) {
+      return [];
+    }
+
+    const fileContents = fs.readFileSync(todosFile, 'utf8');
+    const parsedTodos = JSON.parse(fileContents);
+
+    if (!Array.isArray(parsedTodos)) {
+      console.error(`${todosFile} must contain a JSON array. Starting with an empty todo list.`);
+      return [];
+    }
+
+    return parsedTodos;
+  } catch (error) {
+    console.error('Failed to load todos:', error);
+    return [];
+  }
+}
+
+function persistTodos() {
+  try {
+    fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(todosFile, `${JSON.stringify(todos, null, 2)}\n`, 'utf8');
+  } catch (error) {
+    console.error('Failed to persist todos:', error);
+  }
+}
+
+todos = loadTodos();
+nextId = todos.reduce((maxId, todo) => {
+  return Number.isInteger(todo.id) && todo.id >= maxId ? todo.id + 1 : maxId;
+}, 1);
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -33,6 +71,7 @@ app.post('/todos', (req, res) => {
 
   nextId += 1;
   todos.push(todo);
+  persistTodos();
 
   return res.status(201).json(todo);
 });
@@ -45,6 +84,7 @@ app.delete('/todos/:id', (req, res) => {
   }
 
   todos = todos.filter((todo) => todo.id !== id);
+  persistTodos();
 
   return res.json({ success: true });
 });
