@@ -8,7 +8,29 @@ let todos = [];
 let nextId = 1;
 
 app.use(express.json());
+
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+
+  res.on('finish', () => {
+    const durationMs = Number(process.hrtime.bigint() - start) / 1e6;
+    console.log(
+      `[${new Date().toISOString()}] ${req.method} ${req.path} ${res.statusCode} ${durationMs.toFixed(2)}`
+    );
+  });
+
+  next();
+});
+
 app.use(express.static('public'));
+
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime_seconds: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
