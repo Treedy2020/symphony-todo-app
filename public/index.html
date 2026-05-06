@@ -78,6 +78,27 @@
         background: #1d4ed8;
       }
 
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 16px;
+      }
+
+      .filter-button {
+        background: #e2e8f0;
+        color: #334155;
+      }
+
+      .filter-button:hover {
+        background: #cbd5e1;
+      }
+
+      .filter-button.selected {
+        background: #2563eb;
+        color: #ffffff;
+      }
+
       .delete {
         background: #fee2e2;
         color: #991b1b;
@@ -145,6 +166,11 @@
         <button type="submit">Add</button>
       </form>
       <p id="error" class="error" aria-live="polite"></p>
+      <div class="filters" aria-label="Todo filters">
+        <button class="filter-button selected" type="button" data-filter="all" aria-pressed="true">All</button>
+        <button class="filter-button" type="button" data-filter="active" aria-pressed="false">Active</button>
+        <button class="filter-button" type="button" data-filter="done" aria-pressed="false">Done</button>
+      </div>
       <ul id="todo-list" aria-label="Todo list"></ul>
     </main>
 
@@ -153,23 +179,48 @@
       const input = document.querySelector('#todo-input');
       const list = document.querySelector('#todo-list');
       const error = document.querySelector('#error');
+      const filterButtons = document.querySelectorAll('.filter-button');
+      let todos = [];
+      let currentFilter = 'all';
 
       function setError(message) {
         error.textContent = message;
       }
 
-      function renderTodos(todos) {
-        list.innerHTML = '';
+      function getVisibleTodos() {
+        if (currentFilter === 'active') {
+          return todos.filter((todo) => todo.done === false);
+        }
 
-        if (todos.length === 0) {
+        if (currentFilter === 'done') {
+          return todos.filter((todo) => todo.done === true);
+        }
+
+        return todos;
+      }
+
+      function renderFilters() {
+        filterButtons.forEach((button) => {
+          const selected = button.dataset.filter === currentFilter;
+          button.classList.toggle('selected', selected);
+          button.setAttribute('aria-pressed', String(selected));
+        });
+      }
+
+      function renderTodos() {
+        const visibleTodos = getVisibleTodos();
+        list.innerHTML = '';
+        renderFilters();
+
+        if (visibleTodos.length === 0) {
           const empty = document.createElement('li');
           empty.className = 'empty';
-          empty.textContent = 'No todos yet.';
+          empty.textContent = 'No todos here.';
           list.appendChild(empty);
           return;
         }
 
-        todos.forEach((todo) => {
+        visibleTodos.forEach((todo) => {
           const item = document.createElement('li');
 
           const text = document.createElement('span');
@@ -195,7 +246,8 @@
         }
 
         const data = await response.json();
-        renderTodos(data.todos);
+        todos = data.todos;
+        renderTodos();
       }
 
       async function addTodo(text) {
@@ -220,6 +272,13 @@
 
         await loadTodos();
       }
+
+      filterButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          currentFilter = button.dataset.filter;
+          renderTodos();
+        });
+      });
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
