@@ -149,6 +149,13 @@
         color: #64748b;
       }
 
+      .todo-summary {
+        margin: 14px 0 0;
+        color: #6b7280;
+        font-size: 13px;
+        text-align: center;
+      }
+
       .error {
         color: #b91c1c;
         min-height: 1.5em;
@@ -188,6 +195,7 @@
         <button class="filter-button" type="button" data-filter="done" aria-pressed="false">Done</button>
       </div>
       <ul id="todo-list" aria-label="Todo list"></ul>
+      <footer id="todo-summary" class="todo-summary" aria-live="polite"></footer>
     </main>
 
     <script>
@@ -196,6 +204,7 @@
       const list = document.querySelector('#todo-list');
       const error = document.querySelector('#error');
       const filterButtons = document.querySelectorAll('.filter-button');
+      const summary = document.querySelector('#todo-summary');
       let todos = [];
       let currentFilter = 'all';
 
@@ -223,10 +232,18 @@
         });
       }
 
+      function pluralize(count, singular, plural) {
+        return count === 1 ? singular : plural;
+      }
+
       function renderTodos() {
         const visibleTodos = getVisibleTodos();
         list.innerHTML = '';
         renderFilters();
+
+        const total = todos.length;
+        const remaining = todos.filter((todo) => todo.done === false).length;
+        summary.textContent = `${total} ${pluralize(total, 'item', 'items')} · ${remaining} remaining`;
 
         if (visibleTodos.length === 0) {
           const empty = document.createElement('li');
