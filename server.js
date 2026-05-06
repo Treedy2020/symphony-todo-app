@@ -98,6 +98,28 @@ app.post('/todos', (req, res) => {
   return res.status(201).json(todo);
 });
 
+app.patch('/todos/:id', (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Todo id must be a number' });
+  }
+
+  if (typeof req.body.done !== 'boolean') {
+    return res.status(400).json({ error: 'Todo done must be a boolean' });
+  }
+
+  const todo = todos.find((item) => item.id === id);
+
+  if (!todo) {
+    return res.status(404).json({ error: 'Todo not found' });
+  }
+
+  todo.done = req.body.done;
+
+  return res.json(todo);
+});
+
 app.delete('/todos/:id', (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
 
